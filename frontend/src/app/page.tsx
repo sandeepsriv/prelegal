@@ -72,7 +72,11 @@ function PartySection({
 
 export default function HomePage() {
   const router = useRouter();
-  const [form, setForm] = useState<MNDAFormData>(defaultFormData);
+  const [form, setForm] = useState<MNDAFormData>(() => ({
+    ...defaultFormData,
+    effectiveDate: new Date().toISOString().split("T")[0],
+  }));
+  const [errors, setErrors] = useState<string[]>([]);
 
   function setField<K extends keyof MNDAFormData>(key: K, value: MNDAFormData[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -90,7 +94,24 @@ export default function HomePage() {
   }
 
   function handlePreview() {
-    localStorage.setItem("mndaFormData", JSON.stringify(form));
+    const missing: string[] = [];
+    if (!form.party1.name) missing.push("Party 1 name");
+    if (!form.party1.company) missing.push("Party 1 company");
+    if (!form.party2.name) missing.push("Party 2 name");
+    if (!form.party2.company) missing.push("Party 2 company");
+    if (!form.governingLaw) missing.push("Governing law");
+    if (!form.jurisdiction) missing.push("Jurisdiction");
+    if (missing.length) {
+      setErrors(missing);
+      return;
+    }
+    setErrors([]);
+    try {
+      localStorage.setItem("mndaFormData", JSON.stringify(form));
+    } catch {
+      // Storage unavailable — proceed anyway; preview will use in-memory data
+      sessionStorage?.setItem("mndaFormData", JSON.stringify(form));
+    }
     router.push("/preview");
   }
 
@@ -291,6 +312,17 @@ export default function HomePage() {
               />
             </div>
           </section>
+
+          {errors.length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
+              <p className="font-medium mb-1">Please fill in the required fields:</p>
+              <ul className="list-disc list-inside space-y-0.5">
+                {errors.map((e) => (
+                  <li key={e}>{e}</li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <button
             onClick={handlePreview}

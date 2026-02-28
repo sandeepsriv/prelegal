@@ -1,5 +1,3 @@
-"use client";
-
 import { MNDAFormData } from "@/lib/types";
 
 interface Props {
@@ -141,7 +139,7 @@ export default function MNDAPreview({ data }: Props) {
                   </p>
                   <p>
                     <span className="text-xs text-gray-400">Date: </span>
-                    {formatDate(effectiveDate)}
+                    {"_______________"}
                   </p>
                 </div>
               </div>

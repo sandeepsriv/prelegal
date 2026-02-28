@@ -5,23 +5,44 @@ import { useRouter } from "next/navigation";
 import { MNDAFormData, defaultFormData } from "@/lib/types";
 import MNDAPreview from "@/components/MNDAPreview";
 
+function loadFromStorage(): MNDAFormData | null {
+  try {
+    const stored =
+      localStorage.getItem("mndaFormData") ??
+      sessionStorage?.getItem("mndaFormData");
+    if (stored) return JSON.parse(stored) as MNDAFormData;
+  } catch {}
+  return null;
+}
+
 export default function PreviewPage() {
   const router = useRouter();
-  const [data, setData] = useState<MNDAFormData>(defaultFormData);
+  const [data, setData] = useState<MNDAFormData>(() => {
+    // Runs only in the browser (this is a client component), so localStorage is safe here.
+    return loadFromStorage() ?? defaultFormData;
+  });
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem("mndaFormData");
-    if (stored) {
-      try {
-        setData(JSON.parse(stored));
-      } catch {
-        // fall back to defaults
-      }
+    const stored = loadFromStorage();
+    if (!stored) {
+      router.replace("/");
+      return;
     }
-  }, []);
+    setData(stored);
+    setReady(true);
+  }, [router]);
 
   function handleDownload() {
     window.print();
+  }
+
+  if (!ready) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center text-sm text-gray-500">
+        Loading…
+      </div>
+    );
   }
 
   return (
@@ -43,8 +64,8 @@ export default function PreviewPage() {
       </div>
 
       {/* Document */}
-      <div className="py-10 px-4 bg-gray-50 min-h-screen">
-        <div className="bg-white shadow-sm rounded-xl border border-gray-200 p-8 max-w-3xl mx-auto">
+      <div className="py-10 px-4 bg-gray-50 min-h-screen print:bg-white print:p-0">
+        <div className="bg-white shadow-sm rounded-xl border border-gray-200 p-8 max-w-3xl mx-auto print:shadow-none print:border-none print:rounded-none print:p-0">
           <MNDAPreview data={data} />
         </div>
       </div>
