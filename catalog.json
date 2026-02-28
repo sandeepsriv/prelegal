@@ -1,0 +1,62 @@
+[
+  {
+    "name": "Mutual Non-Disclosure Agreement",
+    "description": "Standard terms for a mutual NDA allowing two parties to share confidential information while protecting it from disclosure. Covers permitted use, exceptions, term, return/destruction of information, and governing law.",
+    "filename": "templates/Mutual-NDA.md"
+  },
+  {
+    "name": "Mutual Non-Disclosure Agreement - Cover Page",
+    "description": "Fillable cover page template for the Common Paper Mutual NDA. Parties complete this document with the purpose, effective date, term, governing law, and signatures to execute the MNDA.",
+    "filename": "templates/Mutual-NDA-coverpage.md"
+  },
+  {
+    "name": "Cloud Service Agreement",
+    "description": "Comprehensive agreement for selling and buying cloud software and SaaS products. Covers service access, restrictions, privacy, payment, term, warranties, liability, indemnification, and confidentiality.",
+    "filename": "templates/CSA.md"
+  },
+  {
+    "name": "Service Level Agreement",
+    "description": "Agreement defining uptime and response time commitments for cloud services. Covers target uptime calculation, service credits, remedies, and termination rights for repeated SLA failures.",
+    "filename": "templates/sla.md"
+  },
+  {
+    "name": "Design Partner Agreement",
+    "description": "Agreement for giving a partner early access to a product in exchange for structured feedback. Covers program participation, product improvement rights, IP ownership, confidentiality, and termination.",
+    "filename": "templates/design-partner-agreement.md"
+  },
+  {
+    "name": "Professional Services Agreement",
+    "description": "Agreement for engaging a provider to perform professional services under statements of work. Covers deliverables, IP assignment, payment, warranties, indemnification, confidentiality, and insurance.",
+    "filename": "templates/psa.md"
+  },
+  {
+    "name": "Data Processing Agreement",
+    "description": "Agreement establishing GDPR-compliant obligations for processing personal data. Covers processor/subprocessor relationships, processing instructions, restricted transfers (EEA SCCs, UK Addendum), security incidents, and audit rights.",
+    "filename": "templates/DPA.md"
+  },
+  {
+    "name": "Partnership Agreement",
+    "description": "Agreement for formalizing co-marketing and business partnership arrangements. Covers partner obligations, trademark licensing, payment, escalation procedures, indemnification, and confidentiality.",
+    "filename": "templates/Partnership-Agreement.md"
+  },
+  {
+    "name": "Software License Agreement",
+    "description": "Agreement for licensing on-premise or installed software products. Covers license grant, restrictions, open source software, updates, payment, term, warranties, liability caps, and indemnification.",
+    "filename": "templates/Software-License-Agreement.md"
+  },
+  {
+    "name": "Pilot Agreement",
+    "description": "Short-term agreement for a customer to evaluate a product before committing to a full commercial contract. Covers pilot access, evaluation purposes, restrictions, liability, confidentiality, and termination.",
+    "filename": "templates/Pilot-Agreement.md"
+  },
+  {
+    "name": "Business Associate Agreement",
+    "description": "HIPAA-compliant agreement governing the handling of protected health information (PHI) by a business associate. Covers permitted uses, safeguards, subcontractors, breach notification, and audit rights.",
+    "filename": "templates/BAA.md"
+  },
+  {
+    "name": "AI Addendum",
+    "description": "Addendum to supplement existing agreements when AI/ML services are part of the product offering. Covers AI service usage, model training restrictions, IP ownership of inputs and outputs, and AI-specific disclaimers.",
+    "filename": "templates/AI-Addendum.md"
+  }
+]
