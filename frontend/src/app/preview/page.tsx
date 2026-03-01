@@ -26,7 +26,7 @@ export default function PreviewPage() {
   useEffect(() => {
     const stored = loadFromStorage();
     if (!stored) {
-      router.replace("/");
+      router.replace("/dashboard");
       return;
     }
     setData(stored);
@@ -50,7 +50,7 @@ export default function PreviewPage() {
       {/* Toolbar — hidden when printing */}
       <div className="no-print sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm px-4 py-3 flex items-center justify-between">
         <button
-          onClick={() => router.push("/")}
+          onClick={() => router.push("/dashboard")}
           className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1"
         >
           ← Back to form
