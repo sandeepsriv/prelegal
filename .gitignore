@@ -103,6 +103,9 @@ Thumbs.db
 *.sqlite3
 *.db
 
+# Backend static (populated during Docker build)
+backend/static/
+
 # Uploads / media
 uploads/
 media/
