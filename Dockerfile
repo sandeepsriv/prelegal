@@ -15,7 +15,7 @@ RUN pip install --no-cache-dir uv
 COPY backend/pyproject.toml backend/uv.lock* ./
 RUN uv sync --frozen --no-dev
 
-COPY backend/main.py ./
+COPY backend/main.py backend/ai.py ./
 COPY --from=frontend-builder /app/out ./static
 
 EXPOSE 8000
