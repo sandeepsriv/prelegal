@@ -13,6 +13,7 @@ from pydantic import BaseModel
 load_dotenv()  # loads .env from cwd or parent dirs; Docker injects vars via env_file
 
 from ai import chat_completion  # noqa: E402 (must be after load_dotenv)
+from template_renderer import render_template  # noqa: E402
 
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 DB_PATH = os.path.join(os.path.dirname(__file__), "prelegal.db")
@@ -53,13 +54,21 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     messages: list[ChatMessage]
     fields: dict
+    doc_type: str = "mnda"
+
+
+class PreviewRequest(BaseModel):
+    doc_type: str
+    fields: dict
 
 
 @app.post("/api/chat")
 async def chat(request: ChatRequest):
-    """Stream AI chat response with extracted MNDA fields."""
+    """Stream AI chat response with extracted document fields."""
     messages = [m.model_dump() for m in request.messages]
-    result = await asyncio.to_thread(chat_completion, messages, request.fields)
+    result = await asyncio.to_thread(
+        chat_completion, messages, request.fields, request.doc_type
+    )
 
     async def generate():
         words = result.reply.split(" ")
@@ -67,11 +76,23 @@ async def chat(request: ChatRequest):
             chunk = word if i == len(words) - 1 else word + " "
             yield f"data: {json.dumps({'type': 'text', 'delta': chunk})}\n\n"
 
-        fields_data = result.fields.model_dump(exclude_none=True)
-        yield f"data: {json.dumps({'type': 'fields', 'data': fields_data})}\n\n"
+        # Emit doc_type event for the "unknown" classifier flow
+        if request.doc_type == "unknown":
+            detected = result.fields.get("detectedDocType")
+            if detected:
+                yield f"data: {json.dumps({'type': 'doc_type', 'data': detected})}\n\n"
+
+        yield f"data: {json.dumps({'type': 'fields', 'data': result.fields})}\n\n"
         yield f"data: {json.dumps({'type': 'done'})}\n\n"
 
     return StreamingResponse(generate(), media_type="text/event-stream")
+
+
+@app.post("/api/preview")
+async def preview(request: PreviewRequest):
+    """Render document template with substituted fields, returning HTML."""
+    html = render_template(request.doc_type, request.fields)
+    return {"html": html}
 
 
 if os.path.exists(STATIC_DIR):

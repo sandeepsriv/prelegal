@@ -10,7 +10,7 @@ export default function LoginPage() {
 
   function handleSignIn(e: React.FormEvent) {
     e.preventDefault();
-    router.push("/dashboard");
+    router.push("/select");
   }
 
   return (
@@ -78,7 +78,7 @@ export default function LoginPage() {
           <p className="mt-4 text-center text-xs" style={{ color: "#888888" }}>
             Don&apos;t have an account?{" "}
             <button
-              onClick={() => router.push("/dashboard")}
+              onClick={() => router.push("/select")}
               className="underline"
               style={{ color: "#209dd7" }}
             >
