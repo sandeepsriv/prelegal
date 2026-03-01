@@ -1,10 +1,18 @@
+import asyncio
+import json
 import os
 import sqlite3
 from contextlib import asynccontextmanager
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+
+load_dotenv()  # loads .env from cwd or parent dirs; Docker injects vars via env_file
+
+from ai import chat_completion  # noqa: E402 (must be after load_dotenv)
 
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 DB_PATH = os.path.join(os.path.dirname(__file__), "prelegal.db")
@@ -35,6 +43,35 @@ app = FastAPI(title="Prelegal API", lifespan=lifespan)
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
+
+
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+
+class ChatRequest(BaseModel):
+    messages: list[ChatMessage]
+    fields: dict
+
+
+@app.post("/api/chat")
+async def chat(request: ChatRequest):
+    """Stream AI chat response with extracted MNDA fields."""
+    messages = [m.model_dump() for m in request.messages]
+    result = await asyncio.to_thread(chat_completion, messages, request.fields)
+
+    async def generate():
+        words = result.reply.split(" ")
+        for i, word in enumerate(words):
+            chunk = word if i == len(words) - 1 else word + " "
+            yield f"data: {json.dumps({'type': 'text', 'delta': chunk})}\n\n"
+
+        fields_data = result.fields.model_dump(exclude_none=True)
+        yield f"data: {json.dumps({'type': 'fields', 'data': fields_data})}\n\n"
+        yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
 
 
 if os.path.exists(STATIC_DIR):
