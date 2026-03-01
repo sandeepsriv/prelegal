@@ -8,7 +8,7 @@ The available documents are covered in the catalog.json file in the project root
 
 @catalog.json
 
-The current implementation provides the V1 technical foundation: Docker-hosted FastAPI backend serving a statically-built Next.js frontend, with a fake login screen and the original Mutual NDA form.
+The current implementation provides an AI-powered chat interface for drafting all 12 supported legal document types. Users select a document type from a card grid, then chat with the AI to fill in fields — the preview updates live on the right.
 
 ## Development process
 
@@ -72,15 +72,27 @@ Backend available at http://localhost:8000
 - Fake login screen at `/` (no real auth); NDA form at `/dashboard`
 - Start/stop scripts for Mac, Linux, Windows in `scripts/`
 
-### Planned (PL-5)
-- AI chat interface for document creation (LiteLLM/Cerebras/gpt-oss-120b)
-- Structured outputs for field extraction from conversation
-- Live preview updates as AI gathers fields
+### Completed (PL-5)
+- Split-pane dashboard: AI chat (left) + live NDA preview (right)
+- `backend/ai.py`: LiteLLM/Cerebras (`gpt-oss-120b`) with Pydantic structured outputs
+- `POST /api/chat` SSE endpoint: streams reply word-by-word, emits fields event at end
+- LLM call runs in `asyncio.to_thread` to avoid blocking the event loop
+- `frontend/src/components/ChatPanel.tsx`: SSE reader, error handling, welcome screen
+- Dashboard rewritten; "Preview & Download PDF" navigates to existing preview page
 
-### Planned (PL-6)
-- Support for all 11 document types
-- AI document type detection and routing
-- Per-document preview/PDF components
+### Completed (PL-6)
+- Document type selection screen (`/select`): 12 card grid + "Not sure? Get AI help" option
+- `backend/fields.py`: 12 per-doc Pydantic partial-field models
+- `backend/prompts.py`: 12 system prompts (one per doc type + classifier)
+- `backend/docs.py`: `DOC_REGISTRY` mapping doc types to configs
+- `backend/template_renderer.py`: markdown cover page templates with `{{field}}` substitution
+- `templates/cover-pages/`: 11 markdown cover page templates
+- `POST /api/preview`: renders template with fields → HTML
+- `frontend/src/lib/docTypes.ts`: client-side doc type config
+- `frontend/src/components/DocPreview.tsx`: generic template-based document preview
+- `frontend/src/components/DocTypeCard.tsx`: doc selection card component
+- `ChatPanel` generalized: sends `doc_type` to backend; handles `doc_type` SSE event for unknown→detected transitions
+- "Not sure" flow: `doc_type: "unknown"` triggers classifier; AI emits `doc_type` SSE event to transition
 
 ### Planned (PL-7)
 - Real user authentication (JWT, bcrypt)
@@ -88,3 +100,5 @@ Backend available at http://localhost:8000
 
 ### Current API Endpoints
 - `GET /api/health` - Health check
+- `POST /api/chat` - AI chat: `{messages, fields, doc_type}` → SSE stream of text deltas + extracted fields
+- `POST /api/preview` - Render template: `{doc_type, fields}` → `{html}`

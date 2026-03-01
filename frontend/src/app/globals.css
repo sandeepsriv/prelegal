@@ -2,6 +2,59 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Document preview styles */
+.doc-preview h1 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #032147;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid #ecad0a;
+  padding-bottom: 0.5rem;
+}
+.doc-preview h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #032147;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+.doc-preview p {
+  font-size: 0.875rem;
+  color: #374151;
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}
+.doc-preview table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  margin-bottom: 1rem;
+}
+.doc-preview th,
+.doc-preview td {
+  border: 1px solid #e5e7eb;
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+}
+.doc-preview th {
+  background: #f9fafb;
+  font-weight: 600;
+  color: #032147;
+}
+.doc-preview hr {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 1rem 0;
+}
+.doc-preview em {
+  color: #9ca3af;
+  font-style: italic;
+}
+.doc-preview strong {
+  font-weight: 600;
+  color: #032147;
+}
+
 @media print {
   .no-print {
     display: none !important;

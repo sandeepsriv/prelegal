@@ -1,76 +1,50 @@
-from typing import Optional
-from pydantic import BaseModel
+"""AI chat completion with per-document structured outputs."""
+from dataclasses import dataclass
+from typing import Type
+from pydantic import BaseModel, create_model
 from litellm import completion
+
+from docs import DOC_REGISTRY
 
 MODEL = "openrouter/openai/gpt-oss-120b"
 EXTRA_BODY = {"provider": {"order": ["cerebras"]}}
 
-SYSTEM_PROMPT = """You are a legal assistant helping users draft a Mutual Non-Disclosure Agreement (MNDA).
 
-Your job is to have a friendly conversation to gather the required fields for the MNDA, then return those fields in structured output.
-
-The required fields are:
-- purpose: How confidential information may be used (e.g. "Evaluating a business partnership")
-- effectiveDate: The date the agreement takes effect (ISO format YYYY-MM-DD)
-- mndaTermType: "expires" (fixed years) or "ongoing" (until terminated)
-- mndaTermYears: Number of years (only if mndaTermType is "expires")
-- confidentialityTermType: "fixed" (fixed years) or "perpetuity" (forever)
-- confidentialityTermYears: Number of years (only if confidentialityTermType is "fixed")
-- governingLaw: The US state whose laws govern the agreement (e.g. "Delaware")
-- jurisdiction: City/county and state where disputes are resolved (e.g. "Wilmington, Delaware")
-- party1Name, party1Title, party1Company, party1NoticeAddress: First party signatory details
-- party2Name, party2Title, party2Company, party2NoticeAddress: Second party signatory details
-
-Guidelines:
-- Start by greeting the user and asking about the purpose of the NDA
-- Ask for missing fields naturally in conversation, grouping related questions
-- When you learn a field value from the user, extract it and include it in your fields response
-- Only include fields you've newly learned or confirmed in this response
-- When all fields are complete, congratulate the user and say the document is ready to preview
-- Be concise and friendly, not overly formal
-
-Always respond in the structured format requested."""
-
-
-class PartialMNDAFields(BaseModel):
-    purpose: Optional[str] = None
-    effectiveDate: Optional[str] = None
-    mndaTermType: Optional[str] = None
-    mndaTermYears: Optional[str] = None
-    confidentialityTermType: Optional[str] = None
-    confidentialityTermYears: Optional[str] = None
-    governingLaw: Optional[str] = None
-    jurisdiction: Optional[str] = None
-    party1Name: Optional[str] = None
-    party1Title: Optional[str] = None
-    party1Company: Optional[str] = None
-    party1NoticeAddress: Optional[str] = None
-    party2Name: Optional[str] = None
-    party2Title: Optional[str] = None
-    party2Company: Optional[str] = None
-    party2NoticeAddress: Optional[str] = None
-
-
-class ChatResponse(BaseModel):
+@dataclass
+class ChatResult:
     reply: str
-    fields: PartialMNDAFields
+    fields: dict
 
 
-def chat_completion(messages: list[dict], current_fields: dict) -> ChatResponse:
+def _make_response_model(fields_class: Type[BaseModel]) -> Type[BaseModel]:
+    """Create a ChatResponse Pydantic model with the given fields class."""
+    return create_model(
+        "ChatResponse",
+        reply=(str, ...),
+        fields=(fields_class, fields_class()),
+    )
+
+
+def chat_completion(messages: list[dict], current_fields: dict, doc_type: str) -> ChatResult:
     """Call LLM with conversation history and return reply + extracted fields."""
-    filled = {k: v for k, v in current_fields.items() if v}
-    system_with_state = SYSTEM_PROMPT
-    if filled:
-        system_with_state += f"\n\nFields already collected: {filled}"
+    config = DOC_REGISTRY.get(doc_type)
+    if config is None:
+        config = DOC_REGISTRY["unknown"]
 
-    llm_messages = [{"role": "system", "content": system_with_state}] + messages
+    filled = {k: v for k, v in current_fields.items() if v}
+    system_prompt = config.prompt
+    if filled:
+        system_prompt += f"\n\nFields already collected: {filled}"
+
+    llm_messages = [{"role": "system", "content": system_prompt}] + messages
+    ResponseModel = _make_response_model(config.fields_class)
 
     response = completion(
         model=MODEL,
         messages=llm_messages,
-        response_format=ChatResponse,
+        response_format=ResponseModel,
         reasoning_effort="low",
         extra_body=EXTRA_BODY,
     )
-    result = response.choices[0].message.content
-    return ChatResponse.model_validate_json(result)
+    result = ResponseModel.model_validate_json(response.choices[0].message.content)
+    return ChatResult(reply=result.reply, fields=result.fields.model_dump(exclude_none=True))

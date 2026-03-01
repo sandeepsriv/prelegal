@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MNDAFormData } from "@/lib/types";
+import { DocFields } from "@/lib/docTypes";
 
 interface Message {
   role: "user" | "assistant";
@@ -9,42 +9,27 @@ interface Message {
 }
 
 interface Props {
-  fields: MNDAFormData;
-  onFieldsUpdate: (partial: Partial<MNDAFormData>) => void;
+  docType: string;
+  fields: DocFields;
+  onFieldsUpdate: (partial: DocFields) => void;
+  onDocTypeDetected?: (docType: string) => void;
 }
 
-function fieldsToFormData(raw: Record<string, string>): Partial<MNDAFormData> {
-  const out: Partial<MNDAFormData> = {};
-  if (raw.purpose !== undefined) out.purpose = raw.purpose;
-  if (raw.effectiveDate !== undefined) out.effectiveDate = raw.effectiveDate;
-  if (raw.mndaTermType !== undefined)
-    out.mndaTermType = raw.mndaTermType as "expires" | "ongoing";
-  if (raw.mndaTermYears !== undefined) out.mndaTermYears = raw.mndaTermYears;
-  if (raw.confidentialityTermType !== undefined)
-    out.confidentialityTermType = raw.confidentialityTermType as "fixed" | "perpetuity";
-  if (raw.confidentialityTermYears !== undefined)
-    out.confidentialityTermYears = raw.confidentialityTermYears;
-  if (raw.governingLaw !== undefined) out.governingLaw = raw.governingLaw;
-  if (raw.jurisdiction !== undefined) out.jurisdiction = raw.jurisdiction;
-
-  const p1: Partial<MNDAFormData["party1"]> = {};
-  if (raw.party1Name !== undefined) p1.name = raw.party1Name;
-  if (raw.party1Title !== undefined) p1.title = raw.party1Title;
-  if (raw.party1Company !== undefined) p1.company = raw.party1Company;
-  if (raw.party1NoticeAddress !== undefined) p1.noticeAddress = raw.party1NoticeAddress;
-  if (Object.keys(p1).length > 0) out.party1 = { ...({} as MNDAFormData["party1"]), ...p1 };
-
-  const p2: Partial<MNDAFormData["party2"]> = {};
-  if (raw.party2Name !== undefined) p2.name = raw.party2Name;
-  if (raw.party2Title !== undefined) p2.title = raw.party2Title;
-  if (raw.party2Company !== undefined) p2.company = raw.party2Company;
-  if (raw.party2NoticeAddress !== undefined) p2.noticeAddress = raw.party2NoticeAddress;
-  if (Object.keys(p2).length > 0) out.party2 = { ...({} as MNDAFormData["party2"]), ...p2 };
-
-  return out;
+function welcomeText(docType: string): string {
+  if (docType === "unknown") {
+    return "Tell me what kind of legal agreement you need and I'll identify the right document for you.";
+  }
+  return "Chat with our AI to draft your document. The preview will fill in automatically as we gather the details.";
 }
 
-export default function ChatPanel({ fields, onFieldsUpdate }: Props) {
+function startMessage(docType: string): string {
+  if (docType === "unknown") {
+    return "Hello, I need help figuring out which legal document I need.";
+  }
+  return "Hello, I need help drafting a legal document.";
+}
+
+export default function ChatPanel({ docType, fields, onFieldsUpdate, onDocTypeDetected }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -69,7 +54,8 @@ export default function ChatPanel({ fields, onFieldsUpdate }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: allMessages,
-          fields: flattenFields(fields),
+          fields,
+          doc_type: docType,
         }),
       });
 
@@ -103,12 +89,13 @@ export default function ChatPanel({ fields, onFieldsUpdate }: Props) {
               return updated;
             });
           } else if (payload.type === "fields") {
-            onFieldsUpdate(fieldsToFormData(payload.data));
+            onFieldsUpdate(payload.data);
+          } else if (payload.type === "doc_type") {
+            onDocTypeDetected?.(payload.data);
           }
         }
       }
     } catch {
-      // Replace the empty assistant placeholder with an error message
       setMessages((prev) => {
         const updated = [...prev];
         updated[updated.length - 1] = {
@@ -124,7 +111,7 @@ export default function ChatPanel({ fields, onFieldsUpdate }: Props) {
 
   async function handleStart() {
     setStarted(true);
-    await sendMessage("Hello, I need help drafting an NDA.", []);
+    await sendMessage(startMessage(docType), []);
   }
 
   async function handleSend() {
@@ -134,37 +121,15 @@ export default function ChatPanel({ fields, onFieldsUpdate }: Props) {
     await sendMessage(text, messages);
   }
 
-  function flattenFields(f: MNDAFormData): Record<string, string> {
-    return {
-      purpose: f.purpose,
-      effectiveDate: f.effectiveDate,
-      mndaTermType: f.mndaTermType,
-      mndaTermYears: f.mndaTermYears,
-      confidentialityTermType: f.confidentialityTermType,
-      confidentialityTermYears: f.confidentialityTermYears,
-      governingLaw: f.governingLaw,
-      jurisdiction: f.jurisdiction,
-      party1Name: f.party1.name,
-      party1Title: f.party1.title,
-      party1Company: f.party1.company,
-      party1NoticeAddress: f.party1.noticeAddress,
-      party2Name: f.party2.name,
-      party2Title: f.party2.title,
-      party2Company: f.party2.company,
-      party2NoticeAddress: f.party2.noticeAddress,
-    };
-  }
-
   if (!started) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4 p-6">
         <div className="text-center">
           <h2 className="text-xl font-bold mb-2" style={{ color: "#032147" }}>
-            AI-Powered NDA Assistant
+            AI Legal Assistant
           </h2>
           <p className="text-sm" style={{ color: "#888888" }}>
-            Chat with our AI to draft your Mutual NDA. The document will fill in
-            automatically as we gather the details.
+            {welcomeText(docType)}
           </p>
         </div>
         <button
